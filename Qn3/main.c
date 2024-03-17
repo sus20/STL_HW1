@@ -13,77 +13,44 @@ long long int sum(int n)
     return result;
 }
 
-// PAPI initialization, event setup, counting, and cleanup void measurePerformance(int n)
-void measurePerformance(int n)
-{
-    // Initialize PAPI
-    if (PAPI_library_init(PAPI_VER_CURRENT) != PAPI_VER_CURRENT)
-    {
-        fprintf(stderr, "PAPI library init error!\n");
-        exit(1);
-    }
-
-    // Create an event set
-    int event_set = PAPI_NULL;
-    if (PAPI_create_eventset(&event_set) != PAPI_OK)
-    {
-        fprintf(stderr, "PAPI event set creation error!\n");
-        exit(1);
-    }
-    // Add events for wall clock time, CPU time, and cache misses
-    if (PAPI_add_event(event_set, PAPI_TOT_CYC) != PAPI_OK ||
-        PAPI_add_event(event_set, PAPI_TOT_INS) != PAPI_OK ||
-        PAPI_add_event(event_set, PAPI_L1_DCM) != PAPI_OK)
-    {
-        fprintf(stderr, "PAPI event add error!\n");
-        exit(1);
-    }
-
-    // Start counting
-    if (PAPI_start(event_set) != PAPI_OK)
-    {
-        fprintf(stderr, "PAPI start error!\n");
-        exit(1);
-    }
-
-    // Call the function to be measured
-    long long int result = sum(n);
-
-    // Stop counting
-    if (PAPI_stop(event_set, NULL) != PAPI_OK)
-    {
-        fprintf(stderr, "PAPI stop error!\n");
-        exit(1);
-    }
-
-    // Get the results
-    long long values[3]; // Array to store results for three events
-    if (PAPI_read(event_set, values) != PAPI_OK)
-    {
-        fprintf(stderr, "PAPI read error!\n");
-        exit(1);
-    }
-    printf("Total cycles: %lld\n", values[0]);
-    printf("Total instructions: %lld\n", values[1]);
-    printf("L1 data cache misses: %lld\n", values[2]);
-
-    // Clean up
-    if (PAPI_cleanup_eventset(event_set) != PAPI_OK)
-    {
-        fprintf(stderr, "PAPI cleanup event set error!\n");
-        exit(1);
-    }
-    if (PAPI_destroy_eventset(&event_set) != PAPI_OK)
-    {
-        fprintf(stderr, "PAPI destroy event set error!\n");
-        exit(1);
-    }
-}
-
 int main()
 {
+    // Initialize PAPI
+    PAPI_library_init(PAPI_VER_CURRENT);
+    long long start_time, end_time, elapsed_time;
+    long long values[3];
+
     int n = 1000000;
+
+    // events to measure
+    int events[] = {PAPI_TOT_CYC, PAPI_L2_TCM, PAPI_TOT_INS};
+
+    // Start the PAPI timer
+    start_time = PAPI_get_real_usec();
+
+    // Start counting the events
+    PAPI_start_counters(events, 3);
+
     printf("Sum of integers from 1 to %d is %lld\n", n, sum(n));
-    measurePerformance(n);
+
+    // Stop counting the events
+    PAPI_stop_counters(values, 3);
+
+    // Stop the PAPI timer
+    end_time = PAPI_get_real_usec();
+
+    // Calculate elapsed time
+    elapsed_time = end_time - start_time;
+
+    printf("Elapsed time: %lld microseconds\n", elapsed_time);
+
+    // Print the measured values
+    printf("CPU time: %lld cycles\n", values[0]);
+    printf("L2 cache misses: %lld\n", values[1]);
+    printf("Total instructions executed: %lld\n", values[2]);
+
+    // Shutdown PAPI
+    PAPI_shutdown();
+
     return 0;
 }

@@ -1,11 +1,25 @@
-# CFLAGS = -Wall -std=iso9899:2018 -pedantic
-CFLAGS = -Wall -std=c11 -pedantic
+# Compiler
+CC = gcc
 
-output: main.o 
-	gcc $(CFLAGS) main.o -o output
+# Compiler flags
+CFLAGS = -Wall -std=iso9899:2018 -pedantic
+
+# PAPI library
+PAPI_LIB = -lpapi
+
+# Output executable
+OUTPUT = output
+
+# Source files
+SRC = main.c
+
+all: $(OUTPUT)
+
+$(OUTPUT): main.o
+	$(CC) $(CFLAGS) -o $@ $^ $(PAPI_LIB)
 
 main.o: main.c
-	gcc $(CFLAGS) -c main.c -o main.o
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f *.o output
+	rm -f *.o $(OUTPUT)
